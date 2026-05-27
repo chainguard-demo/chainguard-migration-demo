@@ -71,46 +71,46 @@ jobs:
       - name: Get latest unique tag
         id: get_current_unique_tag
         run: |
-          LATEST_UNIQUE_TAG=$(crane ls ${{ env.REDIS_IMAGE }} | grep -E '^[^ ]+-[0-9]{12}$' | grep -v '^latest' | grep -v '\-dev' | sort -Vr | head -n 1)
-          echo "LATEST_UNIQUE_TAG=${LATEST_UNIQUE_TAG}" >> $GITHUB_ENV
+          LATEST_UNIQUE_TAG=$(crane ls "${REDIS_IMAGE}" | grep -E '^[^ ]+-[0-9]{12}$' | grep -v '^latest' | grep -v '\-dev' | sort -Vr | head -n 1)
+          echo "LATEST_UNIQUE_TAG=${LATEST_UNIQUE_TAG}" >> "$GITHUB_ENV"
 
       - name: Compare unique tags
         id: compare_unique_tags
         run: |
-          echo "CURRENT_UNIQUE_TAG=${{ env.CURRENT_UNIQUE_TAG }}"
-          echo "LATEST_UNIQUE_TAG=${{ env.LATEST_UNIQUE_TAG }}"
-          if [ "${{ env.CURRENT_UNIQUE_TAG }}" != "${{ env.LATEST_UNIQUE_TAG }}" ]; then
-            echo "UNIQUE_TAGS_CHANGED=true" >> $GITHUB_ENV
+          echo "CURRENT_UNIQUE_TAG=${CURRENT_UNIQUE_TAG}"
+          echo "LATEST_UNIQUE_TAG=${LATEST_UNIQUE_TAG}"
+          if [ "${CURRENT_UNIQUE_TAG}" != "${LATEST_UNIQUE_TAG}" ]; then
+            echo "UNIQUE_TAGS_CHANGED=true" >> "$GITHUB_ENV"
           else
-            echo "UNIQUE_TAGS_CHANGED=false" >> $GITHUB_ENV
+            echo "UNIQUE_TAGS_CHANGED=false" >> "$GITHUB_ENV"
           fi
 
       - name: Run chainctl images diff
         if: env.UNIQUE_TAGS_CHANGED == 'true'
         id: diff_vulnerabilities
         run: |
-          OLD_IMAGE="${{ env.REDIS_IMAGE }}:${{ env.CURRENT_UNIQUE_TAG }}"
-          NEW_IMAGE="${{ env.REDIS_IMAGE }}:${{ env.LATEST_UNIQUE_TAG }}"
+          OLD_IMAGE="${REDIS_IMAGE}:${CURRENT_UNIQUE_TAG}"
+          NEW_IMAGE="${REDIS_IMAGE}:${LATEST_UNIQUE_TAG}"
 
-          CVE_LIST_JSON=$(chainctl images diff $OLD_IMAGE $NEW_IMAGE 2>/dev/null | jq -c '[.vulnerabilities.removed[] | select(.severity == "Critical" or .severity == "High") | .id]')
-          echo "CVE_LIST=$CVE_LIST_JSON" >> $GITHUB_ENV
+          CVE_LIST_JSON=$(chainctl images diff "$OLD_IMAGE" "$NEW_IMAGE" 2>/dev/null | jq -c '[.vulnerabilities.removed[] | select(.severity == "Critical" or .severity == "High") | .id]')
+          echo "CVE_LIST=$CVE_LIST_JSON" >> "$GITHUB_ENV"
 
           if [ -n "$CVE_LIST_JSON" ]; then
             echo "Found CVE fixes for the following CVES: $CVE_LIST_JSON"
-            echo "FIX_CVE=true" >> $GITHUB_ENV
+            echo "FIX_CVE=true" >> "$GITHUB_ENV"
           else
             echo "No CVE fixes available"
-            echo "FIX_CVE=false" >> $GITHUB_ENV
+            echo "FIX_CVE=false" >> "$GITHUB_ENV"
           fi
-    
+
       - env:
           GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
         run: |
           gh repo list
-          
+
       - name: Update Helm Values
         shell: bash
-        run: yq -i ".image.tag = \"${{ env.LATEST_UNIQUE_TAG }}\"" helm/redis/values.yaml
+        run: yq -i ".image.tag = strenv(LATEST_UNIQUE_TAG)" helm/redis/values.yaml
       
       - name: Run git diff
         id: create_pr_update
