@@ -67,7 +67,7 @@ jobs:
         run: |
           CURRENT_UNIQUE_IMAGE=$(yq '.image.tag' helm/redis/values.yaml)
           echo "Extracted Unique Tags: $CURRENT_UNIQUE_IMAGE"
-          echo "CURRENT_UNIQUE_TAG=$CURRENT_UNIQUE_IMAGE" >> $GITHUB_ENV
+          echo "CURRENT_UNIQUE_TAG=$CURRENT_UNIQUE_IMAGE" >> "$GITHUB_ENV"
 
       - name: Get latest unique tag
         id: get_current_unique_tag
@@ -118,9 +118,9 @@ jobs:
         shell: bash
         run: |
           git diff --stat
-          echo "create_pr_update=false" >> $GITHUB_OUTPUT
+          echo "create_pr_update=false" >> "$GITHUB_OUTPUT"
           if [[ $(git diff --stat) != '' ]]; then
-            echo "create_pr_update=true" >> $GITHUB_OUTPUT
+            echo "create_pr_update=true" >> "$GITHUB_OUTPUT"
             echo "diff<<EOF" >> "${GITHUB_OUTPUT}"
             git diff >> "${GITHUB_OUTPUT}"
             echo "EOF" >> "${GITHUB_OUTPUT}"
