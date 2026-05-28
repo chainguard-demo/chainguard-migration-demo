@@ -1,0 +1,13 @@
+# Repo-wide actionlint configuration.
+#
+# Suppression rationale:
+# - SC2129 is a shellcheck *style* finding suggesting `{ cmd1; cmd2; } >> file`
+#   instead of N individual `>> file` redirects. The linearized form is more
+#   readable in GitHub Actions `run:` blocks where conditional logic is
+#   interleaved between redirects (e.g., updates.yaml's create_pr_update
+#   flag), so we suppress this rule repo-wide rather than refactor every
+#   block.
+paths:
+  '.github/workflows/**':
+    ignore:
+      - 'shellcheck reported issue.*SC2129'
